@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Davomat</title>
+<style>
+:root{--bg:#121212;--panel:#1b1b1b;--line:#2a2a2a;--gold:#e8a317;--gold-d:#c77d00;--text:#f2ece0;--mute:#8d877b;--ok:#4caf7a;--no:#d9534f;--why:#e8a317}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--text);font-family:"Segoe UI",Roboto,system-ui,sans-serif}
+body{min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+ background:
+ repeating-linear-gradient(45deg,transparent 0 9px,rgba(255,255,255,.035) 9px 10px),
+ repeating-linear-gradient(-45deg,transparent 0 9px,rgba(255,255,255,.035) 9px 10px),var(--bg)}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px 110px}
+header{position:relative;margin:0 -16px 16px;padding:30px 24px 24px;background:linear-gradient(180deg,#1d1d1d,#151515);
+ clip-path:polygon(0 0,100% 0,100% 100%,14% 100%,0 78%)}
+header::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:3px;background:linear-gradient(90deg,var(--gold-d),transparent 80%)}
+h1{font-size:28px;font-weight:800;letter-spacing:.5px}
+.sub{color:var(--mute);font-size:14px;margin-top:4px}
+.gold{color:var(--gold)}
+nav.tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--line)}
+nav.tabs button{flex:1;padding:12px 4px;background:none;border:0;color:var(--mute);font-size:15px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent}
+nav.tabs button.active{color:var(--gold);border-color:var(--gold)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:6px}
+select,input[type=date],input[type=text],input[type=tel],textarea{width:100%;padding:13px 12px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-left:3px solid var(--gold-d);border-radius:0 8px 8px 0;font-size:16px;font-family:inherit}
+select:focus,input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.stats{display:flex;gap:8px;margin:6px 0 14px;font-size:14px}
+.stats span{flex:1;padding:10px;background:var(--panel);border-bottom:2px solid var(--line);text-align:center}
+.stats b{display:block;font-size:22px}
+.stu{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold-d);padding:12px;margin-bottom:10px;border-radius:0 10px 10px 0}
+.stu .n{font-size:17px;font-weight:600;margin-bottom:10px}
+.btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.btns button{padding:12px 4px;background:#141414;color:var(--mute);border:1px solid var(--line);border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+.btns button.on[data-s=keldi]{background:var(--ok);color:#08140d;border-color:var(--ok)}
+.btns button.on[data-s=kelmadi]{background:var(--no);color:#180706;border-color:var(--no)}
+.btns button.on[data-s=sababli]{background:var(--why);color:#191100;border-color:var(--why)}
+.bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(0deg,#0c0c0c 60%,transparent)}
+.save{display:block;width:100%;max-width:528px;margin:0 auto;padding:16px;border:0;font-size:17px;font-weight:800;color:#1a1200;cursor:pointer;
+ background:linear-gradient(90deg,var(--gold-d),var(--gold));clip-path:polygon(0 0,100% 0,100% 100%,4% 100%,0 70%);border-radius:0 8px 0 0}
+.save:disabled{opacity:.5}
+.msg{text-align:center;color:var(--mute);padding:30px 10px}
+.toast{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#f7f3ea;color:#161616;padding:11px 20px;border-radius:999px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20}
+.toast.show{opacity:1}
+.all{background:none;border:1px solid var(--gold-d);color:var(--gold);padding:8px 12px;border-radius:8px;font-size:14px;cursor:pointer;margin-bottom:12px}
+
+/* O'quvchilar tab */
+.card{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold-d);padding:10px;margin-bottom:9px;border-radius:0 10px 10px 0;cursor:pointer}
+.ph{width:48px;height:48px;border-radius:50%;object-fit:cover;background:#2a2a2a;flex:0 0 48px;border:1px solid var(--line)}
+.ph.ph-x{display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--mute);font-size:17px}
+.card .meta{flex:1;min-width:0}
+.card .nm{font-size:16px;font-weight:600}
+.card .tel{font-size:13px;color:var(--mute);margin-top:2px}
+.pay{font-size:12px;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+.pay.yes{background:rgba(76,175,122,.18);color:var(--ok)}
+.pay.no{background:rgba(217,83,79,.18);color:var(--no)}
+
+.panel{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:30;display:none}
+.panel.show{display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;background:#161616;border-top:1px solid var(--line);border-radius:18px 18px 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom))}
+.sheet .top{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.sheet .ph{width:64px;height:64px;font-size:22px}
+.sheet h2{font-size:20px}
+.sheet .g{color:var(--mute);font-size:13px;margin-top:2px}
+.field{margin-bottom:14px}
+.field .k{font-size:12px;color:var(--mute);margin-bottom:5px}
+.field .v{font-size:15px}
+.field .v a{color:var(--gold);text-decoration:none}
+.paybox{display:flex;align-items:center;justify-content:space-between;background:var(--panel-2,#141414);border:1px solid var(--line);padding:12px;border-radius:10px;margin-top:4px}
+.paytoggle{padding:9px 16px;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+.paytoggle.yes{background:var(--ok);color:#08140d}
+.paytoggle.no{background:var(--no);color:#180706}
+.close{position:absolute;top:14px;right:16px;background:none;border:0;color:var(--mute);font-size:22px;cursor:pointer;padding:6px}
+.hidden{display:none}
+
+/* Jadval */
+.weekgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
+.wd{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 2px;text-align:center}
+.wd.today{border-color:var(--gold);background:rgba(232,163,23,.1)}
+.wd .lbl{font-size:11px;color:var(--mute)}
+.wd .cnt{font-size:17px;font-weight:700;margin-top:4px;color:var(--gold)}
+.sch{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold-d);padding:12px;margin-bottom:9px;border-radius:0 10px 10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer}
+.sch .g{font-size:15px;font-weight:600}
+.sch .d{font-size:13px;color:var(--mute);margin-top:3px}
+.sch .t{font-size:15px;color:var(--gold);font-weight:700;white-space:nowrap}
+
+/* Formalar */
+.form .field{margin-bottom:12px}
+.form .k{font-size:13px;color:var(--mute);margin-bottom:6px}
+.daypick{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.daypick button{padding:9px 2px;background:#141414;color:var(--mute);border:1px solid var(--line);border-radius:7px;font-size:12px;cursor:pointer}
+.daypick button.on{background:var(--gold);border-color:var(--gold);color:#1a1200;font-weight:700}
+.formbar{display:flex;gap:10px;margin-top:18px}
+.formbar button{flex:1;padding:13px;border-radius:9px;border:0;font-size:15px;font-weight:700;cursor:pointer}
+.formbar .cancel{background:#141414;color:var(--mute);border:1px solid var(--line)}
+.formbar .submit{background:linear-gradient(90deg,var(--gold-d),var(--gold));color:#1a1200}
+.newgrp{margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <header>
+  <h1>Davo<span class="gold">mat</span></h1>
+  <div class="sub">O'quv markaz · kunlik belgilash</div>
+ </header>
+
+ <nav class="tabs">
+  <button class="active" data-tab="att">Davomat</button>
+  <button data-tab="stu">O'quvchilar</button>
+  <button data-tab="sch">Jadval</button>
+ </nav>
+
+ <!-- DAVOMAT -->
+ <section id="tab-att">
+  <div class="row">
+   <div><label for="grp">Guruh</label><select id="grp"></select></div>
+   <div><label for="date">Sana</label><input type="date" id="date"></div>
+  </div>
+  <div class="stats">
+   <span><b id="cK" style="color:var(--ok)">0</b>keldi</span>
+   <span><b id="cN" style="color:var(--no)">0</b>kelmadi</span>
+   <span><b id="cS" style="color:var(--why)">0</b>sababli</span>
+  </div>
+  <button class="all" id="allBtn">Hammasi keldi</button>
+  <div id="list"><div class="msg">Yuklanmoqda…</div></div>
+ </section>
+
+ <!-- O'QUVCHILAR -->
+ <section id="tab-stu" class="hidden">
+  <div class="row" style="grid-template-columns:1fr">
+   <div><label for="grp2">Guruh</label><select id="grp2"></select></div>
+  </div>
+  <button class="all" id="addStuBtn">+ Yangi o'quvchi</button>
+  <div id="list2"><div class="msg">Yuklanmoqda…</div></div>
+ </section>
+
+ <!-- JADVAL -->
+ <section id="tab-sch" class="hidden">
+  <div id="weekGrid" class="weekgrid"></div>
+  <div id="schList"><div class="msg">Yuklanmoqda…</div></div>
+  <button class="all" id="addSchBtn" style="margin-top:4px">+ Guruh jadvalini belgilash</button>
+ </section>
+</div>
+
+<div class="bar" id="saveBar"><button class="save" id="save" disabled>Davomatni saqlash</button></div>
+<div class="toast" id="toast"></div>
+
+<div class="panel" id="panel">
+ <div class="sheet">
+  <button class="close" id="panelClose">✕</button>
+  <div id="panelBody"></div>
+ </div>
+</div>
+
+<script>
+// ====== SOZLAMA ======
+// Apps Script "Web app" URL manzilini va tokenni shu yerga qo'ying.
+// API_URL bo'sh bo'lsa, sayt namunaviy (demo) ma'lumot bilan ishlaydi.
+const API_URL = "https://script.google.com/macros/s/AKfycbxEP1NJoqLv2mk_aVeG7hRLI4yy7miGO77iCDrTp8AyYyqYKSPRTeG6bW4SVq_YfDsp/exec";
+const TOKEN   = "xumoyun_1509";
+// =====================
+
+const DEMO = [
+  {id:"1",name:"Aziz Karimov",group:"Ingliz tili A1",phone:"+998 90 123 45 67",address:"Chilonzor, 12-uy",parentPhone:"+998 91 234 56 78",photo:"",paid:true},
+  {id:"2",name:"Malika Yusupova",group:"Ingliz tili A1",phone:"+998 93 222 11 00",address:"Yunusobod, 5-mavze",parentPhone:"+998 97 555 44 33",photo:"",paid:false},
+  {id:"3",name:"Jasur Toshmatov",group:"Ingliz tili A1",phone:"",address:"Sergeli",parentPhone:"+998 90 777 88 99",photo:"",paid:true},
+  {id:"4",name:"Dilnoza Rahimova",group:"Matematika 9-sinf",phone:"+998 94 111 22 33",address:"Mirobod",parentPhone:"+998 95 666 77 88",photo:"",paid:false},
+  {id:"5",name:"Sardor Aliyev",group:"Matematika 9-sinf",phone:"+998 99 333 44 55",address:"Olmazor",parentPhone:"+998 90 888 99 00",photo:"",paid:true}
+];
+const WD=["Dush","Sesh","Chor","Pay","Juma","Shan","Yak"]; // Mon..Sun
+const WD_JSDAY=[1,2,3,4,5,6,0]; // corresponding Date.getDay() values
+const DEMO_SCHEDULE={
+  "Ingliz tili A1":{days:["Dush","Chor","Juma"],time:"14:00-15:30"},
+  "Matematika 9-sinf":{days:["Sesh","Pay","Shan"],time:"16:00-17:30"}
+};
+let students=[], marks={}, schedule={};
+const $=id=>document.getElementById(id);
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const curMonth=()=>today().slice(0,7);
+$("date").value=today();
+
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)}
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function initials(n){return (n||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase()}
+function avatar(s,cls){return s.photo?`<img class="${cls}" src="${esc(s.photo)}" alt="">`:`<div class="${cls} ph-x">${initials(s.name)}</div>`}
+
+async function api(params,body){
+  if(!API_URL) return null;
+  if(body){
+    const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({token:TOKEN,...body})});
+    return r.json();
+  }
+  const q=new URLSearchParams({token:TOKEN,...params});
+  return (await fetch(API_URL+"?"+q)).json();
+}
+
+async function init(){
+  try{
+    const d=await api({action:"students"});
+    students=d?d.students:DEMO;
+  }catch(e){students=[];toast("Ulanishda xatolik. Sozlamani tekshiring.")}
+  const groups=[...new Set(students.map(s=>s.group))];
+  $("grp").innerHTML=groups.map(g=>`<option>${esc(g)}</option>`).join("");
+  $("grp2").innerHTML=groups.map(g=>`<option>${esc(g)}</option>`).join("");
+  try{
+    const sd=await api({action:"schedule"});
+    schedule=(sd&&sd.schedule)||DEMO_SCHEDULE;
+  }catch(e){schedule=DEMO_SCHEDULE}
+  if(!groups.length){
+    $("list").innerHTML='<div class="msg">O\'quvchilar topilmadi. "Oquvchilar" varag\'iga ma\'lumot qo\'shing.</div>';
+    $("list2").innerHTML='';
+  } else { load(); loadStu(); }
+  renderSchedule();
+}
+
+// ---- Davomat ----
+async function load(){
+  const g=$("grp").value, date=$("date").value;
+  marks={};
+  try{
+    const d=await api({action:"get",group:g,date});
+    if(d&&d.marks) marks=d.marks;
+  }catch(e){}
+  render();
+}
+function render(){
+  const g=$("grp").value;
+  const list=students.filter(s=>s.group===g);
+  $("list").innerHTML=list.map(s=>`
+   <div class="stu"><div class="n">${esc(s.name)}</div>
+    <div class="btns">${["keldi","kelmadi","sababli"].map(k=>
+     `<button data-id="${s.id}" data-s="${k}" class="${marks[s.id]===k?"on":""}">${k[0].toUpperCase()+k.slice(1)}</button>`).join("")}
+    </div></div>`).join("");
+  $("save").disabled=!list.length;
+  count();
+}
+function count(){
+  const v=Object.values(marks);
+  $("cK").textContent=v.filter(x=>x==="keldi").length;
+  $("cN").textContent=v.filter(x=>x==="kelmadi").length;
+  $("cS").textContent=v.filter(x=>x==="sababli").length;
+}
+$("list").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-id]"); if(!b) return;
+  marks[b.dataset.id]=b.dataset.s;
+  b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+  count();
+});
+$("allBtn").onclick=()=>{students.filter(s=>s.group===$("grp").value).forEach(s=>marks[s.id]="keldi");render()};
+$("grp").onchange=load; $("date").onchange=load;
+$("save").onclick=async()=>{
+  const g=$("grp").value, list=students.filter(s=>s.group===g);
+  const missing=list.filter(s=>!marks[s.id]).length;
+  if(missing){toast(missing+" ta o'quvchi belgilanmagan");return}
+  $("save").disabled=true;
+  try{
+    const rows=list.map(s=>({id:s.id,name:s.name,status:marks[s.id]}));
+    const r=await api(null,{action:"save",group:g,date:$("date").value,rows});
+    toast(API_URL&&!(r&&r.ok)?"Saqlanmadi: "+(r&&r.error||"xatolik"):"Davomat saqlandi");
+  }catch(e){toast("Saqlanmadi. Internetni tekshiring.")}
+  $("save").disabled=false;
+};
+
+// ---- O'quvchilar ----
+let payMap={}; // id -> true/false for current month
+async function loadStu(){
+  try{
+    const d=await api({action:"payments",month:curMonth()});
+    payMap=(d&&d.payments)||Object.fromEntries(students.map(s=>[s.id,!!s.paid]));
+  }catch(e){payMap=Object.fromEntries(students.map(s=>[s.id,!!s.paid]))}
+  renderStu();
+}
+function renderStu(){
+  const g=$("grp2").value;
+  const list=students.filter(s=>s.group===g);
+  $("list2").innerHTML=list.map(s=>{
+    const paid=payMap[s.id];
+    return `<div class="card" data-id="${s.id}">
+      ${avatar(s,"ph")}
+      <div class="meta"><div class="nm">${esc(s.name)}</div><div class="tel">${esc(s.phone)||"telefon kiritilmagan"}</div></div>
+      <span class="pay ${paid?"yes":"no"}">${paid?"To'langan":"To'lanmagan"}</span>
+    </div>`;
+  }).join("") || '<div class="msg">Bu guruhda o\'quvchi yo\'q.</div>';
+}
+$("grp2").onchange=renderStu;
+$("list2").addEventListener("click",e=>{
+  const c=e.target.closest(".card"); if(!c) return;
+  openStudent(c.dataset.id);
+});
+
+function openStudent(id){
+  const s=students.find(x=>x.id===id); if(!s) return;
+  const paid=!!payMap[id];
+  $("panelBody").innerHTML=`
+   <div class="top">${avatar(s,"ph")}
+    <div><h2>${esc(s.name)}</h2><div class="g">${esc(s.group)}</div></div>
+   </div>
+   <div class="field"><div class="k">Telefon raqami</div><div class="v">${s.phone?`<a href="tel:${esc(s.phone)}">${esc(s.phone)}</a>`:"kiritilmagan"}</div></div>
+   <div class="field"><div class="k">Uydagilar (ota-ona) telefoni</div><div class="v">${s.parentPhone?`<a href="tel:${esc(s.parentPhone)}">${esc(s.parentPhone)}</a>`:"kiritilmagan"}</div></div>
+   <div class="field"><div class="k">Manzil</div><div class="v">${esc(s.address)||"kiritilmagan"}</div></div>
+   <div class="field">
+    <div class="k">Shu oy to'lovi (${curMonth()})</div>
+    <div class="paybox"><span>${paid?"To'langan":"To'lanmagan"}</span>
+     <button class="paytoggle ${paid?"no":"yes"}" id="payBtn">${paid?"To'lanmagan deb belgilash":"To'landi deb belgilash"}</button>
+    </div>
+   </div>`;
+  $("payBtn").onclick=async()=>{
+    const np=!paid;
+    $("payBtn").disabled=true;
+    try{
+      await api(null,{action:"setPayment",id,name:s.name,group:s.group,month:curMonth(),paid:np});
+      payMap[id]=np; toast(np?"To'landi deb belgilandi":"To'lanmagan deb belgilandi");
+      openStudent(id); renderStu();
+    }catch(e){toast("Saqlanmadi")}
+  };
+  $("panel").classList.add("show");
+}
+$("panelClose").onclick=()=>$("panel").classList.remove("show");
+$("panel").addEventListener("click",e=>{if(e.target.id==="panel")$("panel").classList.remove("show")});
+
+// ---- Jadval ----
+function renderSchedule(){
+  const todayJs=new Date().getDay();
+  $("weekGrid").innerHTML=WD.map((d,i)=>{
+    const cnt=Object.values(schedule).filter(s=>(s.days||[]).includes(d)).length;
+    return `<div class="wd ${WD_JSDAY[i]===todayJs?"today":""}"><div class="lbl">${d}</div><div class="cnt">${cnt}</div></div>`;
+  }).join("");
+  const groups=Object.keys(schedule).length?Object.keys(schedule):[...new Set(students.map(s=>s.group))];
+  $("schList").innerHTML=groups.map(g=>{
+    const s=schedule[g];
+    return `<div class="sch" data-g="${esc(g)}">
+      <div><div class="g">${esc(g)}</div><div class="d">${s?s.days.join(", "):"kunlar belgilanmagan"}</div></div>
+      <div class="t">${s?s.time:"—"}</div>
+     </div>`;
+  }).join("") || '<div class="msg">Guruh topilmadi.</div>';
+}
+$("schList").addEventListener("click",e=>{
+  const c=e.target.closest(".sch"); if(!c) return;
+  openSchForm(c.dataset.g);
+});
+$("addSchBtn").onclick=()=>openSchForm(null);
+
+function openSchForm(groupName){
+  const existing=groupName?schedule[groupName]:null;
+  const groups=[...new Set(students.map(s=>s.group))];
+  $("panelBody").innerHTML=`
+   <h2 style="margin-bottom:16px">${groupName?"Jadvalni tahrirlash":"Guruh jadvali"}</h2>
+   <div class="form">
+    <div class="field"><div class="k">Guruh</div>
+     ${groupName?`<input type="text" id="fGroup" value="${esc(groupName)}" readonly>`:
+       `<select id="fGroup">${groups.map(g=>`<option ${g===groupName?"selected":""}>${esc(g)}</option>`).join("")}</select>`}
+    </div>
+    <div class="field"><div class="k">Dars kunlari</div>
+     <div class="daypick" id="dayPick">${WD.map(d=>`<button type="button" data-d="${d}" class="${existing&&existing.days.includes(d)?"on":""}">${d}</button>`).join("")}</div>
+    </div>
+    <div class="field"><div class="k">Soat (masalan 14:00-15:30)</div>
+     <input type="text" id="fTime" placeholder="14:00-15:30" value="${existing?esc(existing.time):""}">
+    </div>
+    <div class="formbar">
+     <button class="cancel" type="button" id="fCancel">Bekor qilish</button>
+     <button class="submit" type="button" id="fSubmit">Saqlash</button>
+    </div>
+   </div>`;
+  $("dayPick").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    b.classList.toggle("on");
+  });
+  $("fCancel").onclick=()=>$("panel").classList.remove("show");
+  $("fSubmit").onclick=async()=>{
+    const g=$("fGroup").value.trim();
+    const days=[...$("dayPick").querySelectorAll("button.on")].map(b=>b.dataset.d);
+    const time=$("fTime").value.trim();
+    if(!g){toast("Guruhni tanlang");return}
+    if(!days.length){toast("Kamida bitta kun tanlang");return}
+    if(!time){toast("Soatni kiriting");return}
+    $("fSubmit").disabled=true;
+    try{
+      await api(null,{action:"setSchedule",group:g,days,time});
+      schedule[g]={days,time};
+      toast("Jadval saqlandi");
+      $("panel").classList.remove("show");
+      renderSchedule();
+    }catch(e){toast("Saqlanmadi")}
+    $("fSubmit").disabled=false;
+  };
+  $("panel").classList.add("show");
+}
+
+// ---- Yangi o'quvchi qo'shish ----
+$("addStuBtn").onclick=()=>{
+  const groups=[...new Set(students.map(s=>s.group))];
+  $("panelBody").innerHTML=`
+   <h2 style="margin-bottom:16px">Yangi o'quvchi</h2>
+   <div class="form">
+    <div class="field"><div class="k">Ism familiya</div><input type="text" id="nName" placeholder="Ism Familiya"></div>
+    <div class="field"><div class="k">Guruh</div>
+     <select id="nGroup">${groups.map(g=>`<option>${esc(g)}</option>`).join("")}<option value="__new__">+ Yangi guruh</option></select>
+     <input type="text" id="nGroupNew" class="newgrp hidden" placeholder="Yangi guruh nomi">
+    </div>
+    <div class="field"><div class="k">Telefon raqami</div><input type="tel" id="nPhone" placeholder="+998 90 123 45 67"></div>
+    <div class="field"><div class="k">Uydagilar (ota-ona) telefoni</div><input type="tel" id="nParent" placeholder="+998 90 123 45 67"></div>
+    <div class="field"><div class="k">Manzil</div><input type="text" id="nAddr" placeholder="Tuman, mahalla"></div>
+    <div class="field"><div class="k">Rasm havolasi (ixtiyoriy)</div><input type="text" id="nPhoto" placeholder="https://..."></div>
+    <div class="formbar">
+     <button class="cancel" type="button" id="nCancel">Bekor qilish</button>
+     <button class="submit" type="button" id="nSubmit">Qo'shish</button>
+    </div>
+   </div>`;
+  $("nGroup").onchange=()=>$("nGroupNew").classList.toggle("hidden",$("nGroup").value!=="__new__");
+  $("nCancel").onclick=()=>$("panel").classList.remove("show");
+  $("nSubmit").onclick=async()=>{
+    const name=$("nName").value.trim();
+    let group=$("nGroup").value;
+    if(group==="__new__") group=$("nGroupNew").value.trim();
+    if(!name){toast("Ism kiriting");return}
+    if(!group){toast("Guruhni kiriting");return}
+    const student={
+      name, group,
+      phone:$("nPhone").value.trim(),
+      parentPhone:$("nParent").value.trim(),
+      address:$("nAddr").value.trim(),
+      photo:$("nPhoto").value.trim()
+    };
+    $("nSubmit").disabled=true;
+    try{
+      const r=await api(null,{action:"addStudent",student});
+      const id=(r&&r.id)||String(Date.now());
+      students.push({id,...student});
+      const groups2=[...new Set(students.map(s=>s.group))];
+      $("grp").innerHTML=groups2.map(g=>`<option>${esc(g)}</option>`).join("");
+      $("grp2").innerHTML=groups2.map(g=>`<option ${g===group?"selected":""}>${esc(g)}</option>`).join("");
+      payMap[id]=false;
+      toast("O'quvchi qo'shildi");
+      $("panel").classList.remove("show");
+      renderStu();
+    }catch(e){toast("Qo'shilmadi. Internetni tekshiring.")}
+    $("nSubmit").disabled=false;
+  };
+  $("panel").classList.add("show");
+};
+
+// ---- Tabs ----
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav.tabs button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  const tab=b.dataset.tab;
+  $("tab-att").classList.toggle("hidden",tab!=="att");
+  $("tab-stu").classList.toggle("hidden",tab!=="stu");
+  $("tab-sch").classList.toggle("hidden",tab!=="sch");
+  $("saveBar").style.display=tab==="att"?"block":"none";
+});
+
+init();
+</script>
+</body>
+</html>
