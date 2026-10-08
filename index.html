@@ -71,6 +71,12 @@ select:focus,input:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .paytoggle{padding:9px 16px;border:0;border-radius:8px;font-weight:700;cursor:pointer}
 .paytoggle.yes{background:var(--ok);color:#08140d}
 .paytoggle.no{background:var(--no);color:#180706}
+.payrow{display:flex;align-items:center;justify-content:space-between;padding:10px 2px;border-bottom:1px solid var(--line)}
+.payrow:last-child{border-bottom:0}
+.payrow .pm{font-size:14px}
+.payrow .pay{padding:7px 13px;border:0;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+.payrow .pay.yes{background:rgba(76,175,122,.18);color:var(--ok)}
+.payrow .pay.no{background:rgba(217,83,79,.18);color:var(--no)}
 .close{position:absolute;top:14px;right:16px;background:none;border:0;color:var(--mute);font-size:22px;cursor:pointer;padding:6px}
 .hidden{display:none}
 
@@ -131,15 +137,19 @@ select:focus,input:focus,textarea:focus,button:focus-visible{outline:2px solid v
   <div class="row" style="grid-template-columns:1fr">
    <div><label for="grp2">Guruh</label><select id="grp2"></select></div>
   </div>
-  <button class="all" id="addStuBtn">+ Yangi o'quvchi</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+   <button class="all" id="addStuBtn">+ Yangi o'quvchi</button>
+   <button class="all" id="addGrpBtn">+ Yangi guruh</button>
+  </div>
   <div id="list2"><div class="msg">Yuklanmoqda…</div></div>
  </section>
+ <datalist id="groupList"></datalist>
 
  <!-- JADVAL -->
  <section id="tab-sch" class="hidden">
   <div id="weekGrid" class="weekgrid"></div>
   <div id="schList"><div class="msg">Yuklanmoqda…</div></div>
-  <button class="all" id="addSchBtn" style="margin-top:4px">+ Guruh jadvalini belgilash</button>
+  <button class="all" id="addSchBtn" style="margin-top:4px">+ Yangi guruh / jadval belgilash</button>
  </section>
 </div>
 
@@ -168,6 +178,17 @@ const DEMO = [
   {id:"4",name:"Dilnoza Rahimova",group:"Matematika 9-sinf",phone:"+998 94 111 22 33",address:"Mirobod",parentPhone:"+998 95 666 77 88",photo:"",paid:false},
   {id:"5",name:"Sardor Aliyev",group:"Matematika 9-sinf",phone:"+998 99 333 44 55",address:"Olmazor",parentPhone:"+998 90 888 99 00",photo:"",paid:true}
 ];
+const OYLAR=["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"];
+function monthLabel(m){const [y,mo]=m.split("-");return OYLAR[parseInt(mo,10)-1]+" "+y}
+function monthsBack(n){ // oxirgi n oy, eng yangisi birinchi, "YYYY-MM"
+  const out=[]; const d=new Date();
+  for(let i=0;i<n;i++){
+    const y=d.getFullYear(), mo=d.getMonth()-i;
+    const dt=new Date(y,mo,1);
+    out.push(dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0"));
+  }
+  return out;
+}
 const WD=["Dush","Sesh","Chor","Pay","Juma","Shan","Yak"]; // Mon..Sun
 const WD_JSDAY=[1,2,3,4,5,6,0]; // corresponding Date.getDay() values
 const DEMO_SCHEDULE={
@@ -195,20 +216,34 @@ async function api(params,body){
   return (await fetch(API_URL+"?"+q)).json();
 }
 
+// Guruhlar manbasi ikkita joydan bo'lishi mumkin: o'quvchilar ro'yxati va
+// jadval (hali o'quvchisi yo'q, faqat yangi ochilgan guruh ham shu yerdan chiqadi).
+function allGroups(){
+  return [...new Set([...students.map(s=>s.group), ...Object.keys(schedule)])].sort();
+}
+function refreshGroupSelects(){
+  const groups=allGroups();
+  const opts=groups.map(g=>`<option>${esc(g)}</option>`).join("");
+  const prevGrp=$("grp").value, prevGrp2=$("grp2").value;
+  $("grp").innerHTML=opts; $("grp2").innerHTML=opts;
+  $("groupList").innerHTML=groups.map(g=>`<option value="${esc(g)}">`).join("");
+  if(groups.includes(prevGrp)) $("grp").value=prevGrp;
+  if(groups.includes(prevGrp2)) $("grp2").value=prevGrp2;
+}
+
 async function init(){
   try{
     const d=await api({action:"students"});
     students=d?d.students:DEMO;
   }catch(e){students=[];toast("Ulanishda xatolik. Sozlamani tekshiring.")}
-  const groups=[...new Set(students.map(s=>s.group))];
-  $("grp").innerHTML=groups.map(g=>`<option>${esc(g)}</option>`).join("");
-  $("grp2").innerHTML=groups.map(g=>`<option>${esc(g)}</option>`).join("");
   try{
     const sd=await api({action:"schedule"});
     schedule=(sd&&sd.schedule)||DEMO_SCHEDULE;
   }catch(e){schedule=DEMO_SCHEDULE}
+  refreshGroupSelects();
+  const groups=allGroups();
   if(!groups.length){
-    $("list").innerHTML='<div class="msg">O\'quvchilar topilmadi. "Oquvchilar" varag\'iga ma\'lumot qo\'shing.</div>';
+    $("list").innerHTML='<div class="msg">Hali guruh yo\'q. "Yangi guruh" yoki "Yangi o\'quvchi" tugmasidan boshlang.</div>';
     $("list2").innerHTML='';
   } else { load(); loadStu(); }
   renderSchedule();
@@ -289,9 +324,10 @@ $("list2").addEventListener("click",e=>{
   openStudent(c.dataset.id);
 });
 
-function openStudent(id){
+let payHistory={}; // id -> {month: bool}
+async function openStudent(id){
   const s=students.find(x=>x.id===id); if(!s) return;
-  const paid=!!payMap[id];
+  const months=monthsBack(6);
   $("panelBody").innerHTML=`
    <div class="top">${avatar(s,"ph")}
     <div><h2>${esc(s.name)}</h2><div class="g">${esc(s.group)}</div></div>
@@ -300,21 +336,43 @@ function openStudent(id){
    <div class="field"><div class="k">Uydagilar (ota-ona) telefoni</div><div class="v">${s.parentPhone?`<a href="tel:${esc(s.parentPhone)}">${esc(s.parentPhone)}</a>`:"kiritilmagan"}</div></div>
    <div class="field"><div class="k">Manzil</div><div class="v">${esc(s.address)||"kiritilmagan"}</div></div>
    <div class="field">
-    <div class="k">Shu oy to'lovi (${curMonth()})</div>
-    <div class="paybox"><span>${paid?"To'langan":"To'lanmagan"}</span>
-     <button class="paytoggle ${paid?"no":"yes"}" id="payBtn">${paid?"To'lanmagan deb belgilash":"To'landi deb belgilash"}</button>
-    </div>
+    <div class="k">Oylik to'lovlar</div>
+    <div id="payRows">${months.map(m=>payRow_(m,false)).join("")}</div>
    </div>`;
-  $("payBtn").onclick=async()=>{
-    const np=!paid;
-    $("payBtn").disabled=true;
-    try{
-      await api(null,{action:"setPayment",id,name:s.name,group:s.group,month:curMonth(),paid:np});
-      payMap[id]=np; toast(np?"To'landi deb belgilandi":"To'lanmagan deb belgilandi");
-      openStudent(id); renderStu();
-    }catch(e){toast("Saqlanmadi")}
-  };
   $("panel").classList.add("show");
+
+  if(!payHistory[id]){
+    try{
+      const d=await api({action:"studentPayments",id});
+      payHistory[id]=(d&&d.payments)||{[curMonth()]:!!payMap[id]};
+    }catch(e){payHistory[id]={[curMonth()]:!!payMap[id]}}
+  }
+  renderPayRows(id,months);
+}
+function payRow_(month,paid){
+  return `<div class="payrow" data-m="${month}">
+    <span class="pm">${monthLabel(month)}</span>
+    <button type="button" class="pay ${paid?"yes":"no"}">${paid?"To'langan":"To'lanmagan"}</button>
+   </div>`;
+}
+function renderPayRows(id,months){
+  const hist=payHistory[id]||{};
+  $("payRows").innerHTML=months.map(m=>payRow_(m,!!hist[m])).join("");
+  $("payRows").querySelectorAll(".payrow").forEach(row=>{
+    row.querySelector("button").onclick=async()=>{
+      const s=students.find(x=>x.id===id);
+      const m=row.dataset.m, np=!hist[m];
+      const btn=row.querySelector("button"); btn.disabled=true;
+      try{
+        await api(null,{action:"setPayment",id,name:s.name,group:s.group,month:m,paid:np});
+        hist[m]=np; payHistory[id]=hist;
+        if(m===curMonth()) payMap[id]=np;
+        renderPayRows(id,months); renderStu();
+        toast(np?"To'landi deb belgilandi":"To'lanmagan deb belgilandi");
+      }catch(e){toast("Saqlanmadi")}
+      btn.disabled=false;
+    };
+  });
 }
 $("panelClose").onclick=()=>$("panel").classList.remove("show");
 $("panel").addEventListener("click",e=>{if(e.target.id==="panel")$("panel").classList.remove("show")});
@@ -326,7 +384,7 @@ function renderSchedule(){
     const cnt=Object.values(schedule).filter(s=>(s.days||[]).includes(d)).length;
     return `<div class="wd ${WD_JSDAY[i]===todayJs?"today":""}"><div class="lbl">${d}</div><div class="cnt">${cnt}</div></div>`;
   }).join("");
-  const groups=Object.keys(schedule).length?Object.keys(schedule):[...new Set(students.map(s=>s.group))];
+  const groups=allGroups();
   $("schList").innerHTML=groups.map(g=>{
     const s=schedule[g];
     return `<div class="sch" data-g="${esc(g)}">
@@ -343,13 +401,12 @@ $("addSchBtn").onclick=()=>openSchForm(null);
 
 function openSchForm(groupName){
   const existing=groupName?schedule[groupName]:null;
-  const groups=[...new Set(students.map(s=>s.group))];
   $("panelBody").innerHTML=`
-   <h2 style="margin-bottom:16px">${groupName?"Jadvalni tahrirlash":"Guruh jadvali"}</h2>
+   <h2 style="margin-bottom:16px">${groupName?"Jadvalni tahrirlash":"Yangi guruh"}</h2>
    <div class="form">
-    <div class="field"><div class="k">Guruh</div>
+    <div class="field"><div class="k">Guruh nomi</div>
      ${groupName?`<input type="text" id="fGroup" value="${esc(groupName)}" readonly>`:
-       `<select id="fGroup">${groups.map(g=>`<option ${g===groupName?"selected":""}>${esc(g)}</option>`).join("")}</select>`}
+       `<input type="text" id="fGroup" placeholder="Masalan: Ingliz tili B1" list="groupList">`}
     </div>
     <div class="field"><div class="k">Dars kunlari</div>
      <div class="daypick" id="dayPick">${WD.map(d=>`<button type="button" data-d="${d}" class="${existing&&existing.days.includes(d)?"on":""}">${d}</button>`).join("")}</div>
@@ -377,19 +434,23 @@ function openSchForm(groupName){
     $("fSubmit").disabled=true;
     try{
       await api(null,{action:"setSchedule",group:g,days,time});
+      const isNew=!schedule[g]&&!students.some(s=>s.group===g);
       schedule[g]={days,time};
-      toast("Jadval saqlandi");
+      toast(isNew?"Yangi guruh ochildi":"Jadval saqlandi");
       $("panel").classList.remove("show");
+      refreshGroupSelects();
       renderSchedule();
+      if(isNew) renderStu();
     }catch(e){toast("Saqlanmadi")}
     $("fSubmit").disabled=false;
   };
   $("panel").classList.add("show");
 }
+$("addGrpBtn").onclick=()=>openSchForm(null);
 
 // ---- Yangi o'quvchi qo'shish ----
 $("addStuBtn").onclick=()=>{
-  const groups=[...new Set(students.map(s=>s.group))];
+  const groups=allGroups();
   $("panelBody").innerHTML=`
    <h2 style="margin-bottom:16px">Yangi o'quvchi</h2>
    <div class="form">
@@ -427,9 +488,8 @@ $("addStuBtn").onclick=()=>{
       const r=await api(null,{action:"addStudent",student});
       const id=(r&&r.id)||String(Date.now());
       students.push({id,...student});
-      const groups2=[...new Set(students.map(s=>s.group))];
-      $("grp").innerHTML=groups2.map(g=>`<option>${esc(g)}</option>`).join("");
-      $("grp2").innerHTML=groups2.map(g=>`<option ${g===group?"selected":""}>${esc(g)}</option>`).join("");
+      refreshGroupSelects();
+      $("grp2").value=group;
       payMap[id]=false;
       toast("O'quvchi qo'shildi");
       $("panel").classList.remove("show");
